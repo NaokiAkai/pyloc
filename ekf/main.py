@@ -26,7 +26,6 @@ start_yaw = 0.0 * math.pi / 180.0
 max_measurement_range = 10.0
 measurement_range_variance_sim = 0.2 * 0.2
 measurement_angle_variance_sim = 3.0 * math.pi / 180.0 * 3.0 * math.pi / 180.0
-sim_time_step = 0.1
 
 # initialize the robot simulator
 robot_sim = RobotSim(start_x, start_y, start_yaw)
@@ -38,17 +37,21 @@ robot_sim.set_odom_noises(0.33, 0.1, 0.1, 0.33)
 robot_sim.set_max_measurement_range(max_measurement_range)
 robot_sim.set_measurement_variances(measurement_range_variance_sim, measurement_angle_variance_sim)
 robot_sim.set_plot_sizes(max_measurement_range, max_measurement_range)
-robot_sim.set_sim_time_step(sim_time_step)
+robot_sim.set_random_measurement_rate(0.05)
+robot_sim.set_sim_time_step(0.1)
 
 # ekf parameters
-min_trace = 0.001
+measurement_range_variance = 0.3 * 0.3
+measurement_angle_variance = 5.0 * math.pi / 180.0 * 5.0 * math.pi / 180.0
 
 ekf = EKF(start_x, start_y, start_yaw)
 ekf.add_landmark(2.0, 2.0)
 ekf.add_landmark(4.0, -4.0)
 ekf.add_landmark(-2.0, -2.0)
 ekf.add_landmark(-4.0, 4.0)
-ekf.set_min_trace(min_trace)
+ekf.set_odom_noises(5.0, 2.0, 2.0, 8.0)
+ekf.set_measurement_variances(measurement_range_variance, measurement_angle_variance)
+ekf.set_min_trace(0.001)
 ekf.set_plot_sizes(5.0, 5.0)
 
 while True:

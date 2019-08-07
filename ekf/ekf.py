@@ -28,10 +28,10 @@ class EKF:
         self.odom_noise2 = 0.5
         self.odom_noise3 = 0.5
         self.odom_noise4 = 2.0
-        self.range_variance = 0.1 * 0.1
-        self.angle_variance = 0.01 * 0.01
-        self.Q = np.array([[self.range_variance, 0.0],
-                           [0.0, self.angle_variance]])
+        self.measurement_range_variance = 0.1 * 0.1
+        self.measurement_angle_variance = 0.01 * 0.01
+        self.Q = np.array([[self.measurement_range_variance, 0.0],
+                           [0.0, self.measurement_angle_variance]])
         self.min_trace = 0.01
         self.landmarks = []
 
@@ -53,6 +53,12 @@ class EKF:
         self.odom_noise2 = odom_noise2
         self.odom_noise3 = odom_noise3
         self.odom_noise4 = odom_noise4
+
+    def set_measurement_variances(self, measurement_range_variance, measurement_angle_variance):
+        self.measurement_range_variance = measurement_range_variance
+        self.measurement_angle_variance = measurement_angle_variance
+        self.Q[0][0] = self.measurement_range_variance
+        self.Q[1][1] = self.measurement_angle_variance
 
     def set_min_trace(self, min_trace):
         self.min_trace = min_trace
@@ -119,7 +125,7 @@ class EKF:
                 elif min_dl > dl:
                     min_dl = dl
                     lidx = j
-            if min_dl >= 0.5:
+            if min_dl >= 1.0:
                 continue
             dx = self.landmarks[lidx][0] - self.robot_pose_x
             dy = self.landmarks[lidx][1] - self.robot_pose_y
@@ -171,6 +177,31 @@ class EKF:
             mx = measurements[i][0] * math.cos(myaw) + self.robot_pose_x
             my = measurements[i][0] * math.sin(myaw) + self.robot_pose_y
             plt.plot(mx, my, marker='o', color='red', markersize=10)
+
+        # plot the estimated covariance over the 2D position
+        S = np.array([[self.pose_cov[0][0], self.pose_cov[0][1]],
+                      [self.pose_cov[1][0], self.pose_cov[1][1]]])
+        lam, vec = np.linalg.eig(S)
+        a, b, t, xi2 = 0.0, 0.0, 0.0, 81.0
+        if lam[0] >= lam[1]:
+            a = math.sqrt(xi2 * lam[0])
+            b = math.sqrt(xi2 * lam[1])
+            t = math.atan2(vec[0][1], vec[0][0])
+        else:
+            a = math.sqrt(xi2 * lam[1])
+            b = math.sqrt(xi2 * lam[0])
+            t = math.atan2(vec[1][1], vec[1][0])
+        x, y = [], []
+        c = math.cos(t)
+        s = math.sin(t)
+        trange = int(self.PI2 * 100.0)
+        for i in range(trange):
+            tt = float(i) / 100.0
+            xx = a * math.cos(tt)
+            yy = b * math.sin(tt)
+            x.append(xx * c - yy * s + self.robot_pose_x)
+            y.append(xx * s + yy * c + self.robot_pose_y)
+        plt.plot(x, y, linewidth=1.0, color="green")
 
         # plot the estimated pose
         x = self.robot_pose_x
